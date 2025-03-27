@@ -1,0 +1,174 @@
+import random
+from collections import defaultdict
+
+class GestorBiblioteca:
+    def __init__(self):
+        self.libros = {}  # Diccionario para almacenar libros {id: {titulo, autor, cantidad}}
+        self.lecturas_usuarios = defaultdict(list)  # Historial de lecturas por usuario
+        self.proximos_eventos = []  # Lista para eventos literarios
+        self.ultimo_id = 0  # Contador para IDs de libros
+    
+    def agregar_libro(self, titulo, autor, cantidad):
+        """Agrega un nuevo libro a la biblioteca"""
+        self.ultimo_id += 1
+        self.libros[self.ultimo_id] = {
+            'titulo': titulo,
+            'autor': autor,
+            'cantidad': cantidad
+        }
+        print(f"Libro agregado: {titulo} por {autor} (ID: {self.ultimo_id}, Cantidad: {cantidad})")
+        return self.ultimo_id
+    
+    def prestar_libro(self, libro_id, usuario):
+        """Presta un libro si está disponible"""
+        if libro_id not in self.libros:
+            print("Error: Libro no encontrado.")
+            return False
+        
+        if self.libros[libro_id]['cantidad'] <= 0:
+            print("Lo sentimos, este libro no está disponible actualmente.")
+            return False
+        
+        self.libros[libro_id]['cantidad'] -= 1
+        self.lecturas_usuarios[usuario].append(libro_id)
+        print(f"Libro prestado: {self.libros[libro_id]['titulo']} a {usuario}")
+        return True
+    
+    def devolver_libro(self, libro_id, usuario):
+        """Devuelve un libro a la biblioteca"""
+        if libro_id not in self.libros:
+            print("Error: Libro no encontrado.")
+            return False
+        
+        self.libros[libro_id]['cantidad'] += 1
+        
+        # Opcional: verificar si el usuario realmente tenía prestado este libro
+        if libro_id in self.lecturas_usuarios[usuario]:
+            self.lecturas_usuarios[usuario].remove(libro_id)
+        
+        print(f"Libro devuelto: {self.libros[libro_id]['titulo']} por {usuario}")
+        return True
+    
+    def consultar_disponibilidad(self, libro_id):
+        """Consulta si un libro está disponible"""
+        if libro_id not in self.libros:
+            print("Error: Libro no encontrado.")
+            return False
+        
+        disponible = self.libros[libro_id]['cantidad'] > 0
+        print(f"Libro '{self.libros[libro_id]['titulo']}': {'Disponible' if disponible else 'No disponible'}")
+        return disponible
+    
+    def sugerir_libro(self, usuario):
+        """Sugiere un libro basado en las lecturas previas del usuario"""
+        if usuario not in self.lecturas_usuarios or not self.lecturas_usuarios[usuario]:
+            # Si no hay historial, sugerir un libro aleatorio
+            disponibles = [id for id, libro in self.libros.items() if libro['cantidad'] > 0]
+            if not disponibles:
+                print("No hay libros disponibles para sugerir.")
+                return None
+            
+            libro_id = random.choice(disponibles)
+        else:
+            # Buscar libros del mismo autor que los leídos
+            autores_leidos = [self.libros[id]['autor'] for id in self.lecturas_usuarios[usuario]]
+            autor_frecuente = max(set(autores_leidos), key=autores_leidos.count)
+            
+            # Buscar libros disponibles del autor frecuente
+            sugerencias = [
+                id for id, libro in self.libros.items() 
+                if libro['autor'] == autor_frecuente 
+                and libro['cantidad'] > 0
+                and id not in self.lecturas_usuarios[usuario]
+            ]
+            
+            if not sugerencias:
+                # Si no hay del mismo autor, buscar libros similares en género (simulado)
+                genero = self._inferir_genero(usuario)
+                sugerencias = [
+                    id for id, libro in self.libros.items() 
+                    if libro['cantidad'] > 0
+                    and id not in self.lecturas_usuarios[usuario]
+                ]
+                libro_id = random.choice(sugerencias) if sugerencias else None
+            else:
+                libro_id = random.choice(sugerencias)
+        
+        if libro_id:
+            print(f"Sugerencia para {usuario}: '{self.libros[libro_id]['titulo']}' por {self.libros[libro_id]['autor']}")
+            return libro_id
+        else:
+            print("No se encontraron sugerencias adecuadas.")
+            return None
+    
+    def _inferir_genero(self, usuario):
+        """Función auxiliar para inferir género literario preferido (simulado)"""
+        # En una implementación real, esto podría analizar títulos o autores
+        return "Ficción"  # Valor simulado
+    
+    # Función adicional creativa: Club de lectura y eventos
+    def agregar_evento(self, nombre, fecha, descripcion):
+        """Agrega un evento literario a la agenda"""
+        self.proximos_eventos.append({
+            'nombre': nombre,
+            'fecha': fecha,
+            'descripcion': descripcion
+        })
+        print(f"Evento agregado: {nombre} el {fecha}")
+    
+    def mostrar_proximos_eventos(self):
+        """Muestra los próximos eventos literarios"""
+        if not self.proximos_eventos:
+            print("No hay eventos programados.")
+            return
+        
+        print("\nPróximos eventos literarios:")
+        for evento in self.proximos_eventos:
+            print(f"- {evento['nombre']} ({evento['fecha']}): {evento['descripcion']}")
+    
+    def buscar_libros(self, termino):
+        """Busca libros por título o autor"""
+        resultados = []
+        for id, libro in self.libros.items():
+            if termino.lower() in libro['titulo'].lower() or termino.lower() in libro['autor'].lower():
+                resultados.append((id, libro))
+        
+        if not resultados:
+            print(f"No se encontraron libros que coincidan con '{termino}'")
+            return []
+        
+        print(f"\nResultados para '{termino}':")
+        for id, libro in resultados:
+            print(f"ID: {id} - {libro['titulo']} por {libro['autor']} (Disponibles: {libro['cantidad']})")
+        
+        return resultados
+
+
+# Ejemplo de uso
+if __name__ == "__main__":
+    biblioteca = GestorBiblioteca()
+    
+    # Agregar algunos libros
+    id1 = biblioteca.agregar_libro("Cien años de soledad en clase", "Javier Santos Moro", 3)
+    id2 = biblioteca.agregar_libro("Tonto", "Beltran Pascual Diaz", 2)
+    id3 = biblioteca.agregar_libro("Michi la tragedia humana", "Sergio Gonzalez Trujillo", 5)
+    id4 = biblioteca.agregar_libro("El diamente del futbol ajalvireño", "Daniel Cobos Blazquez", 4)
+    id5 = biblioteca.agregar_libro("El personaje", "Diego Bravo Martinez", 1)
+    
+    # Operaciones de préstamo y devolución
+    biblioteca.prestar_libro(id1, "Fausto")
+    biblioteca.prestar_libro(id3, "Fausto")
+    biblioteca.consultar_disponibilidad(id1)
+    biblioteca.devolver_libro(id1, "Fausto")
+    biblioteca.consultar_disponibilidad(id1)
+    
+    # Sugerir libros
+    biblioteca.sugerir_libro("Fausto")
+    
+    # Función adicional: eventos
+    biblioteca.agregar_evento("Club de lectura: Trastornaos Ajalvireños", "29/03/2025", "Discusión sobre obras diferentes")
+    biblioteca.agregar_evento("Taller de escritura creativa", "02/04/2025", "Taller práctico para mejorar tus habilidades de escritura")
+    biblioteca.mostrar_proximos_eventos()
+    
+    # Búsqueda de libros
+    biblioteca.buscar_libros("Beltran Pascual Diaz")
